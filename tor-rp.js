@@ -298,7 +298,7 @@ function torReverseProxyServerInit (settings) {
 				debugLog('tor connection for client "'+clientAddr+':'+clientPort+'" closed.');
 			});
 		}
-		debugLog('client "'+clientAddr+':'+clientPort+'" connected!');
+		debugLog('client "'+clientAddr+':'+clientPort+'" connected to '+settings.bindPort+'!');
 		connectTor();
 	});
 	server.listen(settings.bindPort, function() { //'listening' listener
