@@ -19,6 +19,11 @@ var net = require('net');
 var fs = require('fs');
 
 var connections = [];
+var statistics = {
+	connections_received: 0,
+	bytes_sent: 0,
+	bytes_received: 0,
+};
 
 //settings management
 var SettingsConstructor = {
@@ -138,10 +143,53 @@ function randomStringGen(len, charSet) {
 	return randomString;
 }
 
+function parseSeconds(s) {
+	var seconds = +s;
+	var secMinute = 1 * 60;
+	var secHour = secMinute * 60;
+	var secDay = secHour * 24;
+	var secWeek = secDay * 7;
+	var secYear = secWeek * 52;
+	
+	var years = Math.floor(seconds / secYear);
+	seconds = seconds - (years * secYear);
+	
+	var weeks = Math.floor(seconds / secWeek);
+	seconds = seconds - (weeks * secWeek);
+	
+	var days = Math.floor(seconds / secDay);
+	seconds = seconds - (days * secDay);
+	
+	var hours = Math.floor(seconds / secHour);
+	seconds = seconds - (hours * secHour);
+	
+	var minutes = Math.floor(seconds / secMinute);
+	seconds = seconds - (minutes * secMinute);
+	
+	return [years, weeks, days, hours, minutes, seconds];
+}
+
+function parsedSecondsToString(a) {
+	var string = '';
+	string += a[0] > 0 ? ' '+a[0]+'y' : '';
+	string += a[1] > 0 ? ' '+a[1]+'w' : '';
+	string += a[2] > 0 ? ' '+a[2]+'d' : '';
+	string += a[3] > 0 ? ' '+a[3]+'h' : '';
+	string += a[4] > 0 ? ' '+a[4]+'m' : '';
+	string += a[5] > 0 ? ' '+a[5]+'s' : '';
+	return string.substr(1);
+}
+
+function sizeFilter(bytes) {
+	var i, label = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+	for (i = 0; bytes >= 1024 && i < label.length-1; bytes /= 1024, i++);
+	return +(Math.round(bytes+"e+2")+"e-2")+label[i];
+}
+
 function torReverseProxyServerInit (settings) {
 	var server = net.createServer(function(c) { //'connection' listener
 		var clientAddr = c.remoteAddress, clientPort = c.remotePort;
-		var tempBuffer = new Buffer(0);
+		var tempBuffer = '';
 		var tor, torConnected = false;
 		var id = randomStringGen(8);
 		c.on('error', function (e) {
@@ -166,10 +214,10 @@ function torReverseProxyServerInit (settings) {
 			console.log('('+id+') '+data);
 		}
 		function tempBufferListener () {
+			c.setEncoding('hex');
 			c.once('data', function (chunk) {
-				c.setEncoding('hex');
 				if (!torConnected) {
-					tempBuffer = Buffer.concat([tempBuffer, new Buffer(chunk, 'hex')]);
+					tempBuffer += chunk;
 					tempBufferListener();
 				}
 			});
@@ -177,14 +225,20 @@ function torReverseProxyServerInit (settings) {
 		tempBufferListener();
 		function handleClient() {
 			torConnected = true;
-			tor.write(tempBuffer);
+			if (tempBuffer) {
+				statistics.bytes_sent += tempBuffer.length/2;
+				tor.write(new Buffer(tempBuffer, 'hex'));
+				tempBuffer = '';
+			}
 			debugLog('tor connection for client "'+clientAddr+':'+clientPort+'" opend!');
 			c.setEncoding('hex');
 			tor.setEncoding('hex');
 			c.on('data', function (chunk) {
+				statistics.bytes_sent += chunk.length/2;
 				tor.write(new Buffer(chunk, 'hex'));
 			});
 			tor.on('data', function (chunk) {
+				statistics.bytes_received += chunk.length/2;
 				c.write(new Buffer(chunk, 'hex'));
 			});
 		}
@@ -298,6 +352,7 @@ function torReverseProxyServerInit (settings) {
 				debugLog('tor connection for client "'+clientAddr+':'+clientPort+'" closed.');
 			});
 		}
+		statistics.connections_received++;
 		debugLog('client "'+clientAddr+':'+clientPort+'" connected to '+settings.bindPort+'!');
 		connectTor();
 	});
@@ -308,6 +363,13 @@ function torReverseProxyServerInit (settings) {
 
 settingsLoad(null, function (data) {
 	connections = data;
+	setTimeout(function (){
+		console.log('Tor Reverse Proxy uptime is '+
+		parsedSecondsToString(parseSeconds(Math.round(process.uptime())))+', '+
+		statistics.connections_received+' connections made, '+
+		sizeFilter(statistics.bytes_sent)+' sent and '+
+		sizeFilter(statistics.bytes_received)+' received.');
+	}, 10*60*1000);
 	for (var connection in connections) {
 		torReverseProxyServerInit(connections[connection]);
 	}
