@@ -363,7 +363,7 @@ function torReverseProxyServerInit (settings) {
 
 settingsLoad(null, function (data) {
 	connections = data;
-	setTimeout(function (){
+	setInterval(function (){
 		console.log('Tor Reverse Proxy uptime is '+
 		parsedSecondsToString(parseSeconds(Math.round(process.uptime())))+', '+
 		statistics.connections_received+' connections made, '+
