@@ -230,7 +230,7 @@ function torReverseProxyServerInit (settings) {
 				tor.write(new Buffer(tempBuffer, 'hex'));
 				tempBuffer = '';
 			}
-			debugLog('tor connection for client "'+clientAddr+':'+clientPort+'" opend!');
+			debugLog('tor connection for client "'+clientAddr+':'+clientPort+'" opened!');
 			c.setEncoding('hex');
 			tor.setEncoding('hex');
 			c.on('data', function (chunk) {
