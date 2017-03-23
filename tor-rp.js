@@ -63,7 +63,7 @@ function settingsLoad(file, callback) {
 	});
 }
 
-Object.defineProperty(String.prototype, "toHex", { 
+Object.defineProperty(String.prototype, "toHex", {
 	value: function(a) {
 		return new Buffer(this.toString(), 'utf8').toString('hex');
 	},
@@ -72,7 +72,7 @@ Object.defineProperty(String.prototype, "toHex", {
 	enumerable: false
 });
 
-Object.defineProperty(String.prototype, "fromHex", { 
+Object.defineProperty(String.prototype, "fromHex", {
 	value: function(a) {
 		return new Buffer(this.toString(), 'hex').toString('utf8');
 	},
@@ -150,22 +150,22 @@ function parseSeconds(s) {
 	var secDay = secHour * 24;
 	var secWeek = secDay * 7;
 	var secYear = secWeek * 52;
-	
+
 	var years = Math.floor(seconds / secYear);
 	seconds = seconds - (years * secYear);
-	
+
 	var weeks = Math.floor(seconds / secWeek);
 	seconds = seconds - (weeks * secWeek);
-	
+
 	var days = Math.floor(seconds / secDay);
 	seconds = seconds - (days * secDay);
-	
+
 	var hours = Math.floor(seconds / secHour);
 	seconds = seconds - (hours * secHour);
-	
+
 	var minutes = Math.floor(seconds / secMinute);
 	seconds = seconds - (minutes * secMinute);
-	
+
 	return [years, weeks, days, hours, minutes, seconds];
 }
 
